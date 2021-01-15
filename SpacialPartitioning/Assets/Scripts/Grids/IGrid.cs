@@ -1,11 +1,11 @@
-﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 using UnityEditor;
 
 [ExecuteAlways]
 public class IGrid : MonoBehaviour
 {
 	public delegate void CellDelegate(ICell cell);
-	//public delegate void CellDelegate(Vector3 position, Vector3 extents);
 
 #if UNITY_EDITOR
 	[SerializeField]
@@ -47,7 +47,14 @@ public class IGrid : MonoBehaviour
 		Debug.LogError("ConstructGrid must be overridden in children!");
 	}
 
-	protected virtual void ForEachCell(CellDelegate lambda)
+	public virtual List<ICell> QueryNeighbors(ICell cell)
+	{
+		Debug.LogError("QueryNeighbors must be overridden in children!");
+
+		return new List<ICell>();
+	}
+
+	public virtual void ForEachCell(CellDelegate lambda)
 	{
 		Debug.LogError("ForEachCells must be overridden in children!");
 	}

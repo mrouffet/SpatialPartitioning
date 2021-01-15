@@ -83,17 +83,22 @@ public class StaticGrid : IGrid
 		return GetCell(GetCellCoordsFromPosition(position));
 	}
 
-	Vector3 GetCellPosition(StaticCell cell)
+	Vector3Int GetCellCoords(StaticCell cell)
 	{
-		Vector3 halfDims = GetHalfDims();
+		Vector3Int coords = Vector3Int.zero;
 
 		int temp = cell.id / _dimensions.x;
 
-		Vector3 indexPos = Vector3.zero;
+		coords.x = cell.id % _dimensions.x;
+		coords.y = temp % _dimensions.y;
+		coords.z = temp / _dimensions.y;
 
-		indexPos.x = cell.id % _dimensions.x;
-		indexPos.y = temp % _dimensions.y;
-		indexPos.z = temp / _dimensions.y;
+		return coords;
+	}
+
+	Vector3 GetCellPosition(StaticCell cell)
+	{
+		Vector3 indexPos = GetCellCoords(cell);
 
 		indexPos.x -= _dimensions.x / 2;
 		indexPos.y -= _dimensions.y / 2;
@@ -134,7 +139,29 @@ public class StaticGrid : IGrid
 		}
 	}
 
-	protected sealed override void ForEachCell(CellDelegate lambda)
+	public sealed override List<ICell> QueryNeighbors(ICell cell)
+	{
+		List<ICell> result = new List<ICell>();
+
+		Vector3Int coords = GetCellCoords(cell as StaticCell);
+
+
+		if(coords.x - 1 > 0)
+		{
+			if (coords.y - 1 > 0)
+			{
+				if (coords.z - 1 > 0)
+				{
+
+				}
+			}
+		}
+
+
+		return result;
+	}
+
+	public sealed override void ForEachCell(CellDelegate lambda)
 	{
 		for (uint i = 0u; i < cells.Length; ++i)
 			lambda.Invoke(cells[i]);
