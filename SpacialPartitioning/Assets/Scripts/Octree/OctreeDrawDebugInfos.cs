@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEditor;
 
 public class OctreeDrawDebugInfos
 {
@@ -35,6 +36,24 @@ public class OctreeDrawDebugInfos
 	{
 		Color currColor = --currDepth == highlightDepth ? highlightColor : baseColor;
 		currColor.a = Gizmos.color.a;
+
+		Gizmos.color = currColor;
+	}
+
+	public void Draw(OctreeNode _node)
+	{
+		Color currColor = Gizmos.color;
+
+		foreach(OctreeObj obj in _node.objects)
+		{
+			if (Selection.Contains(obj))
+			{
+				Gizmos.color = highlightColor;
+				break;
+			}
+		}
+
+		Gizmos.DrawWireCube(_node.bounds.center, _node.bounds.size);
 
 		Gizmos.color = currColor;
 	}

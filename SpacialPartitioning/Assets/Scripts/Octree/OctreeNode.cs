@@ -1,60 +1,85 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
-[Serializable]
-public class OctreeNode : OctreeNodeBase
+enum OctreeNodeState
 {
-	public OctreeNodeBase[] children =  new OctreeNodeBase[8];
+	// Default empty state.
+	Empty,
 
-	public OctreeNode(Bounds _bounds, OctreeNode _parent) : base(_bounds, _parent)
+	// Only one object in cell (first object added).
+	OneObject,
+
+	// Children + object active.
+	Complex,
+}
+
+public class OctreeNode
+{
+	public readonly Bounds bounds;
+
+	public readonly OctreeNode parent = null;
+
+	// Children of current node.
+	public OctreeNode[] children = new OctreeNode[8];
+
+	// Object in current node cell.
+	public List<OctreeObj> objects = new List<OctreeObj>();
+
+	OctreeNodeState state = OctreeNodeState.Empty;
+
+	public OctreeNode(Bounds _bounds, OctreeNode _parent)
 	{
+		bounds = _bounds;
+
+		parent = _parent;
 	}
 
-	OctreeNodeBase CreateChild(int _index)
+	OctreeNode CreateChild(int _index)
 	{
 		Vector3 size = bounds.size / 2.0f;
 		Vector3 center = bounds.center + size / 2.0f;
 
 		if(_index == 0)
-			children[0] = new OctreeCell(new Bounds(center, size), this);
+			children[0] = new OctreeNode(new Bounds(center, size), this);
 
 		if (_index == 1)
 		{
 			center.z -= size.z;
-			children[1] = new OctreeCell(new Bounds(center, size), this);
+			children[1] = new OctreeNode(new Bounds(center, size), this);
 		}
 
 		if (_index == 2)
 		{
 			center.y -= size.y;
-			children[2] = new OctreeCell(new Bounds(center, size), this);
+			children[2] = new OctreeNode(new Bounds(center, size), this);
 		}
 
 		if (_index == 3)
 		{
 			center.y -= size.y;
 			center.z -= size.z;
-			children[3] = new OctreeCell(new Bounds(center, size), this);
+			children[3] = new OctreeNode(new Bounds(center, size), this);
 		}
 
 		if (_index == 4)
 		{
 			center.x -= size.x;
-			children[4] = new OctreeCell(new Bounds(center, size), this);
+			children[4] = new OctreeNode(new Bounds(center, size), this);
 		}
 
 		if (_index == 5)
 		{
 			center.x -= size.x;
 			center.z -= size.z;
-			children[5] = new OctreeCell(new Bounds(center, size), this);
+			children[5] = new OctreeNode(new Bounds(center, size), this);
 		}
 
 		if (_index == 6)
 		{
 			center.x -= size.x;
 			center.y -= size.y;
-			children[6] = new OctreeCell(new Bounds(center, size), this);
+			children[6] = new OctreeNode(new Bounds(center, size), this);
 		}
 
 		if (_index == 7)
@@ -62,7 +87,7 @@ public class OctreeNode : OctreeNodeBase
 			center.x -= size.x;
 			center.y -= size.y;
 			center.z -= size.z;
-			children[7] = new OctreeCell(new Bounds(center, size), this);
+			children[7] = new OctreeNode(new Bounds(center, size), this);
 		}
 
 		return children[_index];
@@ -125,63 +150,33 @@ public class OctreeNode : OctreeNodeBase
 		}
 	}
 
-	public override sealed void Insert(OctreeObj _obj)
+	public void Insert(OctreeObj _obj)
 	{
-		int childIndex = GetChildFromPosition(_obj.transform.position);
-
-		// Child not found.
-		if(childIndex == -1)
+		if(state == OctreeNodeState.Empty)
 		{
-			Debug.LogError("Child not found, object may be out of bound!");
-			return;
-		}
+			objects.Add(_obj);
+			_obj.node = this;
 
-		OctreeNodeBase child = children[childIndex];
-
-		// First time creation.
-		if(child == null)
-		{
-			child = CreateChild(childIndex);
-
-			child.Insert(_obj);
+			state = OctreeNodeState.OneObject;
 
 			return;
 		}
-
-
-		// Child is already a node.
+		else if(state == OctreeNodeState.OneObject)
 		{
-			OctreeNode nodeChild = child as OctreeNode;
+			// Split cell.
 
-			if (nodeChild != null)
-			{
-				nodeChild.Insert(_obj);
-				return;
-			}
+			// ReInsert first object.
+			Insert_Internal(objects[0]);
+			objects.Clear();
+
+			state = OctreeNodeState.Complex;
 		}
 
-		// Child is a cell.
-		{
-			OctreeCell cellChild = child as OctreeCell;
-
-			if (cellChild.objects.Count == 0) // Empty cell?
-				cellChild.Insert(_obj);
-			else
-			{
-				// Split cell in node.
-				children[childIndex] = new OctreeNode(cellChild.bounds, this);
-
-				// Reinsert previous objects.
-				foreach(var obj in cellChild.objects)
-					children[childIndex].Insert(obj);
-
-				// Insert new object.
-				children[childIndex].Insert(_obj);
-			}
-		}
+		// New object.
+		Insert_Internal(_obj);
 	}
 
-	public override sealed void Remove(OctreeObj _obj)
+	void Insert_Internal(OctreeObj _obj)
 	{
 		int childIndex = GetChildFromPosition(_obj.transform.position);
 
@@ -192,7 +187,28 @@ public class OctreeNode : OctreeNodeBase
 			return;
 		}
 
-		OctreeNodeBase child = children[childIndex];
+		OctreeNode child = children[childIndex];
+
+		// First time creation.
+		if (child == null)
+			child = CreateChild(childIndex);
+
+		child.Insert(_obj);
+	}
+
+	public void Remove(OctreeObj _obj)
+	{
+		/*
+		int childIndex = GetChildFromPosition(_obj.transform.position);
+
+		// Child not found.
+		if (childIndex == -1)
+		{
+			Debug.LogError("Child not found, object may be out of bound!");
+			return;
+		}
+
+		OctreeNode child = children[childIndex];
 
 		if(child == null)
 		{
@@ -221,20 +237,21 @@ public class OctreeNode : OctreeNodeBase
 			if (cellChild.objects.Count == 0) // Empty cell?
 				children[childIndex] = null;
 		}
+		*/
 	}
 
-	public sealed override void OnDrawGizmos(OctreeDrawDebugInfos debugInfos)
+	public void OnDrawGizmos(OctreeDrawDebugInfos debugInfos)
 	{
 		// Draw after for better highlight.
-		if(!debugInfos.IsHighlight())
-			base.OnDrawGizmos(debugInfos);
+		if (!debugInfos.IsHighlight())
+			debugInfos.Draw(this);
 
 
 		debugInfos.AddDepth();
 
 		for (int i = 0; i < 8; ++i)
 		{
-			if(children[i] != null)
+			if (children[i] != null)
 				children[i].OnDrawGizmos(debugInfos);
 		}
 
@@ -242,7 +259,7 @@ public class OctreeNode : OctreeNodeBase
 
 
 		// Draw after for better highlight.
-		if(debugInfos.IsHighlight())
-			base.OnDrawGizmos(debugInfos);
+		if (debugInfos.IsHighlight())
+			debugInfos.Draw(this);
 	}
 }

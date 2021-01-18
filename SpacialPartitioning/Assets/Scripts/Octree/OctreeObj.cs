@@ -2,6 +2,8 @@ using UnityEngine;
 
 public class OctreeObj : MonoBehaviour
 {
+	public OctreeNode node = null;
+
 	private void OnDrawGizmos()
 	{
 		Gizmos.color = Color.green;

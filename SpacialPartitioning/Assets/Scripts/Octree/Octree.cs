@@ -4,7 +4,10 @@ using UnityEngine;
 public class Octree : MonoBehaviour
 {
 	[SerializeField]
-	Vector3 size = Vector3Int.one * 10;
+	Vector3 size = Vector3.one * 10;
+
+	[SerializeField]
+	public static Vector3 minCellSize = Vector3.one;
 
 #if UNITY_EDITOR
 	[SerializeField]
