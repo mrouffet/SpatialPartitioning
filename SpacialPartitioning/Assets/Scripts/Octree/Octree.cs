@@ -1,56 +1,30 @@
+using System;
 using UnityEngine;
 
-[ExecuteAlways]
-public class Octree : MonoBehaviour
+public class Octree : OctreeNode
 {
-	[SerializeField]
-	Vector3 size = Vector3.one * 10;
+	public readonly float minCellSize = 1.0f;
 
-	// TODO: Implement.
-	[SerializeField]
-	public static Vector3 minCellSize = Vector3.one;
-
-#if UNITY_EDITOR
-	[SerializeField]
-	int _debugHighlightDepth = -1;
-#endif
-
-	public OctreeNode root = null;
-
-	private void Awake()
+	public Octree(Vector3 _position, Vector3 _size, float _minCellSize = 1.0f) :
+		base(new Bounds(_position, _size), null)
 	{
-		ConstructGrid(GetComponentsInChildren<OctreeObj>());
+		minCellSize = _minCellSize;
 	}
 
-	public void OnValidate()
+	public void Construct(OctreeObj[] _objects)
 	{
-		ConstructGrid(GetComponentsInChildren<OctreeObj>());
-	}
-
-	private void OnDrawGizmos()
-	{
-		Gizmos.color = OctreeDrawDebugInfos.baseColor;
-		OctreeDrawDebugInfos debugInfos = new OctreeDrawDebugInfos(_debugHighlightDepth);
-
-		root.OnDrawGizmos(debugInfos);
-	}
-
-	private void ConstructGrid(OctreeObj[] _objects)
-	{
-		root = new OctreeNode(new Bounds(transform.position, size), null);
-
-		for(int i = 0; i < _objects.Length; ++i)
+		for (int i = 0; i < _objects.Length; ++i)
 			Insert(_objects[i]);
 	}
 
-	public void Insert(OctreeObj _obj)
+	public sealed override void Insert(OctreeObj _obj)
 	{
-		root.Insert(_obj);
-	}
+		if(!bounds.Contains(_obj.transform.position + _obj.bounds.min) && !bounds.Contains(_obj.transform.position + _obj.bounds.max))
+		{
+			Debug.LogWarning("Object out of octree bounds!");
+			return;
+		}
 
-	public void Remove(OctreeObj _obj)
-	{
-		foreach (OctreeNode node in _obj.nodes)
-			node.Remove(_obj);
+		base.Insert(_obj);
 	}
 }

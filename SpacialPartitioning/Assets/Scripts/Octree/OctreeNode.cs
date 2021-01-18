@@ -12,6 +12,9 @@ enum OctreeNodeState
 
 	// Children + object active.
 	Complex,
+
+	// Minimum Cell size reached (only have objects).
+	MinCell,
 }
 
 public class OctreeNode
@@ -31,8 +34,17 @@ public class OctreeNode
 	public OctreeNode(Bounds _bounds, OctreeNode _parent)
 	{
 		bounds = _bounds;
-
 		parent = _parent;
+
+		Octree octree = GetOctree();
+
+		if (bounds.size.sqrMagnitude <= octree.minCellSize * octree.minCellSize)
+			state = OctreeNodeState.MinCell;
+	}
+
+	Octree GetOctree()
+	{
+		return parent != null ? parent.GetOctree() : this as Octree;
 	}
 
 	void GetChildBounds(int _index, ref Vector3 center, ref Vector3 size)
@@ -173,15 +185,17 @@ public class OctreeNode
 			bounds.Contains(_obj.transform.position + _obj.bounds.max);
 	}
 
-	public void Insert(OctreeObj _obj)
+	public virtual void Insert(OctreeObj _obj)
 	{
-		if (state == OctreeNodeState.Empty)
+		if (state == OctreeNodeState.MinCell || state == OctreeNodeState.Empty)
 		{
 			objects.Add(_obj);
 			_obj.nodes.Add(this);
 
-			state = OctreeNodeState.OneObject;
+			if(state == OctreeNodeState.Empty)
+				state = OctreeNodeState.OneObject;
 
+			// Must return to no call Insert_Internal.
 			return;
 		}
 		else if (state == OctreeNodeState.OneObject)
