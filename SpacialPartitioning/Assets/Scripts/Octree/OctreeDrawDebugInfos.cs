@@ -44,12 +44,24 @@ public class OctreeDrawDebugInfos
 	{
 		Color currColor = Gizmos.color;
 
-		foreach(OctreeObj obj in _node.objects)
+		// Empty object alpha 0.1.
+		if (_node.objects.Count == 0)
 		{
-			if (Selection.Contains(obj))
+			Color newColor = currColor;
+			newColor.a = 0.1f;
+
+			Gizmos.color = newColor;
+		}
+		else
+		{
+			// Highlight cell with selected object.
+			foreach (OctreeObj obj in _node.objects)
 			{
-				Gizmos.color = highlightColor;
-				break;
+				if (Selection.Contains(obj))
+				{
+					Gizmos.color = highlightColor;
+					break;
+				}
 			}
 		}
 

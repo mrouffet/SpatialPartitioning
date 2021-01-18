@@ -43,3 +43,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c63d90c1130e0574690c6367455acb9f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  node:
+    children: []
+    objects: []
+  boundType: 0
+  bounds:
+    m_Center: {x: 0, y: 0, z: 0}
+    m_Extent: {x: 0, y: 0, z: 0}

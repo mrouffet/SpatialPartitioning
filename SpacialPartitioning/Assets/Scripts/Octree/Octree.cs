@@ -39,6 +39,16 @@ public class Octree : MonoBehaviour
 		root = new OctreeNode(new Bounds(transform.position, size), null);
 
 		for(int i = 0; i < _objects.Length; ++i)
-			root.Insert(_objects[i]);
+			Insert(_objects[i]);
+	}
+
+	public void Insert(OctreeObj _obj)
+	{
+		root.Insert(_obj);
+	}
+
+	public void Remove(OctreeObj _obj)
+	{
+		_obj.node.Remove(_obj);
 	}
 }
