@@ -6,6 +6,7 @@ public class Octree : MonoBehaviour
 	[SerializeField]
 	Vector3 size = Vector3.one * 10;
 
+	// TODO: Implement.
 	[SerializeField]
 	public static Vector3 minCellSize = Vector3.one;
 

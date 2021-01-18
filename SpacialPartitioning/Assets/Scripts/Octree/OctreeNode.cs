@@ -14,6 +14,38 @@ enum OctreeNodeState
 	Complex,
 }
 
+// Offset between node child index on each axis.
+/*
+ *				  _______	  _______
+ *				 /______/|	 /______/|
+ *				|		||	|		||
+ *				|	4	||	|	5	||
+ *				|_______|/	|_______|/
+ *				  _______	  _______
+ *				 /______/|	 /______/|
+ *				|		||	|		||
+ *				|	6	||	|	7	||
+ *				|_______|/	|_______|/
+ *	  _______	  _______
+ *	 /______/|	 /______/|
+ *	|		||	|		||
+ *	|	0	||	|	1	||
+ *	|_______|/	|_______|/
+ *	  _______	  _______
+ *	 /______/|	 /______/|
+ *	|		||	|		||
+ *	|	2	||	|	3	||
+ *	|_______|/	|_______|/
+ */
+enum OctreeNodeIndexOffset
+{
+	X = 1,
+
+	Y = 2,
+
+	Z = 4,
+}
+
 public class OctreeNode
 {
 	public readonly Bounds bounds;
@@ -50,18 +82,18 @@ public class OctreeNode
 		center = bounds.center + size / 2.0f;
 
 		if (_index == 1)
-			center.z -= size.z;
+			center.x -= size.x;
 		else if (_index == 2)
 		{
 			center.y -= size.y;
 		}
 		else if (_index == 3)
 		{
+			center.x -= size.x;
 			center.y -= size.y;
-			center.z -= size.z;
 		}
 		else if (_index == 4)
-			center.x -= size.x;
+			center.z -= size.z;
 		else if (_index == 5)
 		{
 			center.x -= size.x;
@@ -69,15 +101,11 @@ public class OctreeNode
 		}
 		else if (_index == 6)
 		{
-			center.x -= size.x;
+			center.z -= size.z;
 			center.y -= size.y;
 		}
 		else if (_index == 7)
-		{
-			center.x -= size.x;
-			center.y -= size.y;
-			center.z -= size.z;
-		}
+			center -= size;
 	}
 
 	OctreeNode CreateChild(int _index)
@@ -117,16 +145,12 @@ public class OctreeNode
 
 	int GetChildFromPosition(Vector3 _pos)
 	{
-#if UNITY_EDITOR
+		// Clamp out of bound positions.
 		if(!bounds.Contains(_pos))
-		{
-			Debug.LogError("Position out of bound!");
-			return -1;
-		}
-#endif
+			_pos = bounds.ClosestPoint(_pos);
 
 
-		if(_pos.x > bounds.center.x)
+		if (_pos.z > bounds.center.z)
 		{
 			// child 0, 1, 2, 3.
 
@@ -134,7 +158,7 @@ public class OctreeNode
 			{
 				// child 0, 1
 
-				if (_pos.z > bounds.center.z)
+				if (_pos.x > bounds.center.x)
 					return 0;
 				else
 					return 1;
@@ -143,7 +167,7 @@ public class OctreeNode
 			{
 				// child 2, 3
 
-				if (_pos.z > bounds.center.z)
+				if (_pos.x > bounds.center.x)
 					return 2;
 				else
 					return 3;
@@ -157,7 +181,7 @@ public class OctreeNode
 			{
 				// child 4, 5
 
-				if (_pos.z > bounds.center.z)
+				if (_pos.x > bounds.center.x)
 					return 4;
 				else
 					return 5;
@@ -166,7 +190,7 @@ public class OctreeNode
 			{
 				// child 6, 7
 
-				if (_pos.z > bounds.center.z)
+				if (_pos.x > bounds.center.x)
 					return 6;
 				else
 					return 7;
@@ -211,29 +235,69 @@ public class OctreeNode
 
 	void Insert_Internal(OctreeObj _obj)
 	{
-		int childIndex = GetChildFromPosition(_obj.transform.position);
+		Vector3 objMin = _obj.transform.position + _obj.bounds.min;
+		Vector3 objMax = _obj.transform.position + _obj.bounds.max;
 
-#if UNITY_EDITOR
-		// Child not found.
-		if (childIndex == -1)
+		int minChildIndex = GetChildFromPosition(objMin);
+		int maxChildIndex = GetChildFromPosition(objMax);
+
+		// Same child.
+		if (minChildIndex == maxChildIndex)
 		{
-			Debug.LogError("Child not found, object may be out of bound!");
+			OctreeNode child = children[minChildIndex];
+
+			// First time creation.
+			if (child == null)
+				child = CreateChild(minChildIndex);
+
+			child.Insert(_obj);
 			return;
 		}
-#endif
 
-		OctreeNode child = children[childIndex];
+		// Multiple child.
+		List<int> childIndices = null;
 
-		// First time creation.
-		if (child == null)
-			child = CreateChild(childIndex);
-
-		if (child.CanContainObject(_obj)) // Check new child bounds can contain object bounds.
-			child.Insert(_obj);
-		else                        // Object too big for child: insert in this node.
 		{
-			_obj.node = this;
-			objects.Add(_obj);
+			int indexDiff = minChildIndex - maxChildIndex;
+
+			if (indexDiff == 3)
+			{
+				// min and max bounds are on the same Z plan (X and Y difference).
+				childIndices = new List<int> { maxChildIndex, maxChildIndex + 1, maxChildIndex + 2, minChildIndex };
+			}
+			else if (indexDiff == 5)
+			{
+				// min and max bounds are on the same Y plan (X and Z difference).
+				childIndices = new List<int> { maxChildIndex, maxChildIndex + 1, minChildIndex - 1, minChildIndex };
+			}
+			else if (indexDiff == 6)
+			{
+				// min and max bounds are on the same X plan (Y and Z difference).
+				childIndices = new List<int> { maxChildIndex, maxChildIndex + 2, minChildIndex - 2, minChildIndex };
+			}
+			else if (indexDiff == 7)
+			{
+				// min and max bounds don't share any plan.
+				childIndices = new List<int> { 0, 1, 2, 3, 4, 5, 6, 7 };
+			}
+			else
+			{
+				// min and max bounds share 2 plans.
+				childIndices = new List<int> { maxChildIndex, minChildIndex };
+			}
+		}
+
+
+		// Add obj to each child.
+		foreach (int childIndex in childIndices)
+		{
+			OctreeNode child = children[childIndex];
+
+			// First time creation.
+			if (child == null)
+				child = CreateChild(childIndex);
+
+			child.Insert(_obj);
 		}
 	}
 
@@ -247,6 +311,8 @@ public class OctreeNode
 
 		if (state == OctreeNodeState.OneObject)
 			state = OctreeNodeState.Empty;
+
+		// TODO: Re-compute opti while Complex.
 	}
 
 	public void OnDrawGizmos(OctreeDrawDebugInfos debugInfos)
