@@ -57,7 +57,7 @@ public class OctreeDrawDebugInfos
 			// Highlight cell with selected object.
 			foreach (OctreeObj obj in _node.objects)
 			{
-				if (Selection.Contains(obj))
+				if (Selection.Contains(obj.gameObject))
 				{
 					Gizmos.color = highlightColor;
 					break;
