@@ -178,7 +178,7 @@ public class OctreeNode
 		if (state == OctreeNodeState.Empty)
 		{
 			objects.Add(_obj);
-			_obj.node = this;
+			_obj.nodes.Add(this);
 
 			state = OctreeNodeState.OneObject;
 
@@ -190,6 +190,7 @@ public class OctreeNode
 
 			// Clean obj list first.
 			OctreeObj firstObj = objects[0];
+			firstObj.nodes.Remove(this);
 			objects.Clear();
 
 			Insert_Internal(firstObj);
@@ -276,6 +277,8 @@ public class OctreeNode
 			Debug.LogError("Remove object not in list!");
 			return;
 		}
+
+		_obj.nodes.Remove(this);
 
 		if (state == OctreeNodeState.OneObject)
 			state = OctreeNodeState.Empty;

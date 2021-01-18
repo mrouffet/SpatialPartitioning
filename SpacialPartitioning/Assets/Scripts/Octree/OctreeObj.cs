@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 enum BoundsType
@@ -11,7 +12,7 @@ enum BoundsType
 
 public class OctreeObj : MonoBehaviour
 {
-	public OctreeNode node = null;
+	public List<OctreeNode> nodes = new List<OctreeNode>();
 
 	[SerializeField]
 	BoundsType boundType = BoundsType.Custom;
@@ -25,7 +26,7 @@ public class OctreeObj : MonoBehaviour
 
 	private void OnDestroy()
 	{
-		if (node != null)
+		foreach(OctreeNode node in nodes)
 			node.Remove(this);
 	}
 

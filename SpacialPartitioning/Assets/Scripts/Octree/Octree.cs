@@ -50,6 +50,7 @@ public class Octree : MonoBehaviour
 
 	public void Remove(OctreeObj _obj)
 	{
-		_obj.node.Remove(_obj);
+		foreach (OctreeNode node in _obj.nodes)
+			node.Remove(_obj);
 	}
 }
