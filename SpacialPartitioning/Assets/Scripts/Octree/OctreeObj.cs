@@ -30,6 +30,22 @@ public class OctreeObj : MonoBehaviour
 			node.Remove(this);
 	}
 
+	public List<OctreeObj> QueryCollisions()
+	{
+		List<OctreeObj> result = new List<OctreeObj>();
+
+		foreach(OctreeNode node in nodes)
+		{
+			foreach(OctreeObj obj in node.objects)
+			{
+				if (obj != this && !result.Contains(obj))
+					result.Add(obj);
+			}
+		}
+
+		return result;
+	}
+
 	void UpdateBounds()
 	{
 		switch (boundType)
