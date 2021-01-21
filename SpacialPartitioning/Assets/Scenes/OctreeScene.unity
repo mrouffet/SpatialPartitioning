@@ -363,10 +363,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d86dc1e998c9cbf45a8b94661e00879c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mHandle:
-    objects: []
-    minCellSize: {x: 1, y: 1, z: 1}
+  minCellSize: 0.5
   size: {x: 10, y: 10, z: 10}
+  _debugHighlightDepth: -1
 --- !u!1001 &897683270
 PrefabInstance:
   m_ObjectHideFlags: 0

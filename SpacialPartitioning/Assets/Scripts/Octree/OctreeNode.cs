@@ -38,7 +38,7 @@ public class OctreeNode
 
 		Octree octree = GetOctree();
 
-		if (bounds.size.sqrMagnitude <= octree.minCellSize * octree.minCellSize)
+		if (bounds.size.x / 2.0f <= octree.minCellSize)
 			state = OctreeNodeState.MinCell;
 	}
 
