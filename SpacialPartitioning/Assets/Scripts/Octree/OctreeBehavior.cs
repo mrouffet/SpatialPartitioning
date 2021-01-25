@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 [ExecuteAlways]
@@ -26,6 +27,15 @@ public class OctreeBehavior : MonoBehaviour
 	{
 		mHandle = new Octree(transform.position, size, minCellSize);
 		mHandle.Construct(GetComponentsInChildren<OctreeObj>());
+	}
+
+	public List<OctreePair> QueryCollisions()
+	{
+		List<OctreePair> res = new List<OctreePair>();
+
+		mHandle.QueryCollisions(ref res);
+
+		return res;
 	}
 
 	public void OnValidate()

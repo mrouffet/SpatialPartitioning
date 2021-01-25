@@ -8,13 +8,13 @@ enum OctreeNodeState
 	Empty,
 
 	// Only one object in cell (first object added).
-	OneObject,
+	SingleObject,
 
-	// Children + object active.
-	Complex,
+	// Children.
+	Children,
 
 	// Minimum Cell size reached (only have objects).
-	MinCell,
+	Objects,
 }
 
 public class OctreeNode
@@ -39,7 +39,7 @@ public class OctreeNode
 		Octree octree = GetOctree();
 
 		if (bounds.size.x / 2.0f <= octree.minCellSize)
-			state = OctreeNodeState.MinCell;
+			state = OctreeNodeState.Objects;
 	}
 
 	Octree GetOctree()
@@ -187,18 +187,18 @@ public class OctreeNode
 
 	public virtual void Insert(OctreeObj _obj)
 	{
-		if (state == OctreeNodeState.MinCell || state == OctreeNodeState.Empty)
+		if (state == OctreeNodeState.Objects || state == OctreeNodeState.Empty)
 		{
 			objects.Add(_obj);
 			_obj.nodes.Add(this);
 
 			if(state == OctreeNodeState.Empty)
-				state = OctreeNodeState.OneObject;
+				state = OctreeNodeState.SingleObject;
 
 			// Must return to no call Insert_Internal.
 			return;
 		}
-		else if (state == OctreeNodeState.OneObject)
+		else if (state == OctreeNodeState.SingleObject)
 		{
 			// Split cell: re-insert first object.
 
@@ -209,7 +209,7 @@ public class OctreeNode
 
 			Insert_Internal(firstObj);
 
-			state = OctreeNodeState.Complex;
+			state = OctreeNodeState.Children;
 		}
 
 		// New object.
@@ -294,10 +294,38 @@ public class OctreeNode
 
 		_obj.nodes.Remove(this);
 
-		if (state == OctreeNodeState.OneObject)
+		if (state == OctreeNodeState.SingleObject)
 			state = OctreeNodeState.Empty;
 
-		// TODO: Re-compute opti while Complex.
+		// TODO: Re-compute opti while Children.
+	}
+
+	public virtual void QueryCollisions(ref List<OctreePair> _result)
+	{
+		if(state == OctreeNodeState.Empty || state == OctreeNodeState.SingleObject)
+			return;
+
+		if (state == OctreeNodeState.Children)
+		{
+			for(int i = 0; i < 8; ++i)
+			{
+				if (children[i] != null)
+					children[i].QueryCollisions(ref _result);
+			}
+		}
+		else if (state == OctreeNodeState.Objects)
+		{
+			for(int i = 0; i < objects.Count; ++i)
+			{
+				for (int j = i + 1; j < objects.Count; ++j)
+				{
+					OctreePair currPair = new OctreePair(objects[i], objects[j]);
+
+					if (_result.Find(_pair => OctreePair.Predicate(_pair, currPair)) == null) // same pair not found.
+						_result.Add(currPair);
+				}
+			}
+		}
 	}
 
 	public void OnDrawGizmos(OctreeDrawDebugInfos debugInfos)
